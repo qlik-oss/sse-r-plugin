@@ -12,9 +12,9 @@ R is not a supported language in gRPC by default. The purpose of this repository
 [Previous Versions](docs/versions.md)
 
 ## Documentation
-See the docs folder and the general SSE repo (server-side-extension). 
+See the docs folder and the general SSE repo (server-side-extension).
 
-* [Architecture Overview](docs/overview.md)
+* [Overview](docs/README.md)
 * [Communication Flow](docs/communication_flow.md)
 * [Generating certificates for secure connection](https://github.com/qlik-oss/server-side-extension/blob/master/generate_certs_guide/README.md) (server-side-extension)
 * [Limitations](https://github.com/qlik-oss/server-side-extension/blob/master/docs/limitations.md) (server-side-extension)
@@ -25,10 +25,10 @@ See the docs folder and the general SSE repo (server-side-extension).
 * [Get Started](GetStarted.md)
 
 ## Secure connection using certificates
-Enable secure connection between the plugin server and Qlik by enabling mutual authentication. See the folder `generate_certs_guide` that explains how to generate proper certificates. This can be found in the general SSE repo (server-side-extension). 
+Enable secure connection between the plugin server and Qlik by enabling mutual authentication. See the folder `generate_certs_guide` that explains how to generate proper certificates. This can be found in the general SSE repo (server-side-extension).
 
 ## Limitations in this version of SSE
- 
+
 #### Load Script (Qlik Sense Limitation)
 - The functions that the SSE plugins provide may not show up properly in the script editor in Qlik Sense which means the intellisense may complain about it and show error, even if it works just fine to execute.
 - No support for Tensor calls from load script. Only scalar and aggregation.
