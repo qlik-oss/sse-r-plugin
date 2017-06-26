@@ -1,0 +1,6 @@
+packages/
+obj/
+bin/
+*.suo
+ServerSideExtension/ServerSideExtension.cs
+ServerSideExtension/ServerSideExtensionGrpc.cs
