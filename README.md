@@ -4,12 +4,12 @@ Server Side Extension (SSE) is a general technology for extending the Qlik built
 
 SSE is part of the Advanced Analytics Integration (AAI) concept at Qlik.  
 
-R is not a supported language in gRPC by default. The purpose of this repository is therefore to provide a possible solution using a C# SSE plugin which in turn access Rserve to be able to run R scripts. All documentation and guides regarding SSE in general, referred to as server-side-extension, are valid and useful for this plugin as well.  
+R is not a supported language in gRPC by default. The purpose of this repository is therefore to provide a possible solution using a C# SSE plugin which in turn accesses Rserve to be able to run R scripts. All documentation and guides regarding SSE in general, referred to as server-side-extension, are valid and useful for this plugin as well.  
 
 ## Status
 **Current Plugin Version and State:** v1.0.0  
 **Matching Qlik Sense Version:** Qlik Sense 2017 release (or later). Both desktop and enterprise.  
-**Disclaimer:** Use it at your own risk. See LICENSE.txt file.  
+**Disclaimer:** Use it at your own risk. See [License](#license).  
 
 [Previous Versions](docs/versions.md)
 
