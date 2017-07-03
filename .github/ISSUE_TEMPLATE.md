@@ -30,7 +30,7 @@
 ```
 ### Versions
 
-* grpc-sse-r-plugin:
+* sse-r-plugin:
 * Qlik Sense:
 * Operating system:
 * [Other relevant versions]
