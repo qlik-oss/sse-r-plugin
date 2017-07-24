@@ -52,7 +52,7 @@ Rserve()
 Add the following line in the settings.ini file:
 `SSEPlugin=R,localhost:50051`
 * __Qlik Sense Enterprise/Server__  
-  1. In the QMC, add a new Analytic Connection.
+  1. In the QMC, add a new Analytic Connection. To match the name used in the example apps, use the Analytic Connection name `R`.
   2. Restart the Qlik Sense Engine service.
 
 ## 8. Start Qlik Sense and start using the apps
