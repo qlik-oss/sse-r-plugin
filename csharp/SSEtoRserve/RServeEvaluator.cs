@@ -213,7 +213,10 @@ namespace SSEtoRserve
                     paramnames += $" {param.Name}";
                 }
                 logger.Info("{0}", paramnames);
-                await AddInputData(scriptHeader.Params.ToArray(), requestStream, rserveConn);
+                if (scriptHeader.Params != null && scriptHeader.Params.Count > 0)
+                {
+                    await AddInputData(scriptHeader.Params.ToArray(), requestStream, rserveConn);
+                }
                 var res = rserveConn.Connection.Eval(scriptHeader.Script);
                 logger.Info($"Rserve result: {res.Count} rows");
                 
