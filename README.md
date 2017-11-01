@@ -8,7 +8,8 @@ R is not a supported language in gRPC by default. The purpose of this repository
 
 ## Status
 **Current Plugin Version and State:** v1.0.0  
-**Matching Qlik Sense Version:** Qlik Sense June 2017 release (or later). Both desktop and enterprise.  
+**Matching Qlik Sense Version:** Qlik Sense June 2017 release (or later). Both desktop and enterprise.
+**Matching QlikView Version:** QlikView November 2017 (or later). Both desktop and server.
 **Disclaimer:** Use it at your own risk. See [License](#license).  
 
 [Previous Versions](docs/versions.md)
@@ -31,20 +32,16 @@ Enable secure connection between the plugin server and Qlik by enabling mutual a
 
 ## Limitations in this version of SSE
 
-#### Load Script (Qlik Sense Limitation)
-- The functions that the SSE plugins provide may not show up properly in the script editor in Qlik Sense which means the intellisense may complain about it and show error, even if it works just fine to execute.
+#### Load Script (Qlik Limitation)
+- The functions that the SSE plugins provide may not show up properly in the script editor in Qlik which means the intellisense may complain about it and show error, even if it works just fine to execute.
 - No support for Tensor calls from load script. Only scalar and aggregation.
 - Resident Table load only.
 
 #### Returning Data
-- There is NO support of returning more rows or a matrix of data back to Qlik Sense. The cardinality of the response from the plugin must be the same as sent from Qlik Sense.
+- There is NO support of returning more rows or a matrix of data back to Qlik. The cardinality of the response from the plugin must be the same as sent from Qlik.
 
-#### Changed Plugin Configuration (Qlik Sense Limitation)
-- If you make changes to the plugin config or add/remove plugins you have to restart Qlik Sense Desktop or the Qlik Sense Engine Service in Server version. It is only during Engine startup that the plugin is connected and the GetCapability plugin method is called.
-
-#### QlikView
-- This version of SSE is not supported in QlikView yet. We are planning to release SSE support in QlikView during 2017-H2.
-
+#### Changed Plugin Configuration (Qlik Limitation)
+- If you make changes to the plugin config or add/remove plugins you have to restart the Qlik engine (i.e. restarting the Desktop process for Qlik Sense Desktop and QlikView Desktop, and restarting the Qlik Sense Engine Service or QlikView Server Service for server version). It is only during Engine startup that the plugin is connected and the GetCapability plugin method is called.
 
 ## License
 See [LICENSE.txt](LICENSE.txt).

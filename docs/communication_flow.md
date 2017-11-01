@@ -1,6 +1,6 @@
 # Communication Flow
 
-The sequence below describes the communication between Qlik Sense Client, Qlik Sense Engine, the SSE Plugin and R. The only difference from the communication flow described in the general server-side-extension repository is the communication between the plugin and R (Rserve).
+The sequence below describes the communication between Qlik Sense Client, Qlik Sense Engine, the SSE Plugin and R  (the communication between _QlikView_ and the SSE plugin works in the same way). The only difference from the communication flow described in the general server-side-extension repository is the communication between the plugin and R (Rserve).
 
 The sequence in words:
 
