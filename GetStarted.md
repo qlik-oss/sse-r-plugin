@@ -1,6 +1,6 @@
 # Build and Run the R-Plugin!
 
-If it is your first time, make sure you set up the R environment and create the executables as described below in the first two steps. Otherwise you can continue directly to [3. Example Sense apps](#3-example-sense-apps).
+If it is your first time, make sure you set up the R environment and create the executables as described below in the first two steps. Otherwise you can continue directly to [3. Example Qlik apps](#3-example-qlik-apps).
 
 ## 1. Set up R Environment
 1. Install R and R Studio by following the instructions on https://www.rstudio.com/
@@ -17,8 +17,8 @@ To be able to run the _SSEtoRserve_ plugin you must follow these steps:
 2. Build the solution to pull down the dependent libraries.
 3. Rebuild the solution again. Now you have your executables located in `csharp/SSEtoRserve/bin` folder.
 
-## 3. Example Sense apps
-There are several example Sense apps located in the sense_apps folder. Here follows a short description of each and what functionalities are covered as well as dependent libraries.
+## 3. Example Qlik apps
+There are several example Qlik apps located in the sense_apps and qlikview_apps folders. Here follows a short description of each and what functionalities are covered as well as dependent libraries.
 
 | __Example__ | __R Libraries__ | __Description__ |
 |-----|------|-----|
@@ -29,7 +29,7 @@ There are several example Sense apps located in the sense_apps folder. Here foll
 ## 4. Install Dependent Libraries
 Install the dependent libraries for the chosen example by
 1. Start R Studio.
-2. Run `install.packages('<library>')` for each library that will be needed based on your use case. For the example Qlik Sense apps you can see the needed libraries in the table above.
+2. Run `install.packages('<library>')` for each library that will be needed based on your use case. For the example Qlik apps you can see the needed libraries in the table above.
 
 ## 5. Start Rserve
 Assuming R Studio is still running. Run the following commands in the console.  
