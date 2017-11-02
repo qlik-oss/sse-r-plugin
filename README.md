@@ -8,8 +8,8 @@ R is not a supported language in gRPC by default. The purpose of this repository
 
 ## Status
 **Current Plugin Version and State:** v1.0.0  
-**Matching Qlik Sense Version:** Qlik Sense June 2017 release (or later). Both desktop and enterprise.
-**Matching QlikView Version:** QlikView November 2017 (or later). Both desktop and server.
+**Matching Qlik Sense Version:** Qlik Sense June 2017 release (or later). Both desktop and enterprise.  
+**Matching QlikView Version:** QlikView November 2017 (or later). Both desktop and server.  
 **Disclaimer:** Use it at your own risk. See [License](#license).  
 
 [Previous Versions](docs/versions.md)
