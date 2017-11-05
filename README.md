@@ -27,13 +27,17 @@ See the docs folder and the general SSE repo (server-side-extension).
 
 * [Get Started](GetStarted.md)
 
-## Secure connection using certificates
+## Security
+
+#### General Security Attention 
+Since R scripts can be very powerful and you will never know what R script will be executed by this plugin (and R installation) you must be extra careful to secure the machine that this plugin and the R installation are deployed to as much as you can. If possible, sandbox the execution. Be aware of which user account that is starting the plugin and R installation and what access rights this user got in the machine and in your domain to minimize any harm a malicious script can cause. 
+
+#### Secure connection using certificates
 Enable secure connection between the plugin server and Qlik by enabling mutual authentication. See the folder `generate_certs_guide` that explains how to generate proper certificates. This can be found in the general SSE repo (server-side-extension).
 
 ## Limitations in this version of SSE
 
 #### Load Script (Qlik Limitation)
-- The functions that the SSE plugins provide may not show up properly in the script editor in Qlik which means the intellisense may complain about it and show error, even if it works just fine to execute.
 - No support for Tensor calls from load script. Only scalar and aggregation.
 - Resident Table load only.
 

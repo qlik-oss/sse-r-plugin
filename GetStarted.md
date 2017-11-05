@@ -14,8 +14,9 @@ If it is your first time, make sure you set up the R environment and create the 
 _Prerequisites_: Visual Studio 2015 (or later)   
 To be able to run the _SSEtoRserve_ plugin you must follow these steps:
 1. Open the `ServerSideExtension.sln` solution file located in the `csharp` folder.
-2. Build the solution to pull down the dependent libraries.
-3. Rebuild the solution again. Now you have your executables located in `csharp/SSEtoRserve/bin` folder.
+2. Note that there are two files missing in the ServerSideExtension project, ServerSideExtension.cs and ServerSideExtensionGrpc.cs. This is ok and will be automatically fixed in the following steps. 
+3. Build the solution to pull down the dependent NuGet packages and libraries (like Grpc.Tools).
+4. Rebuild the solution again. This time the missing files will be generated from the proto file (the protocol) using Grpc.Tools. Now you have your executables located in `csharp/SSEtoRserve/bin` folder.
 
 ## 3. Example Qlik apps
 There are several example Qlik apps located in the sense_apps and qlikview_apps folders. Here follows a short description of each and what functionalities are covered as well as dependent libraries.
@@ -26,7 +27,7 @@ There are several example Qlik apps located in the sense_apps and qlikview_apps 
 | __R_TimeSeriesAnalysis__ | TTR, forecast, tseries, colorspace | Time series use cases. |
 | __R_BasicExample__ | | Examples for all the different script functions. Also example when calling R from load script. |
 
-## 4. Install Dependent Libraries
+## 4. Install Dependent R Libraries
 Install the dependent libraries for the chosen example by
 1. Start R Studio.
 2. Run `install.packages('<library>')` for each library that will be needed based on your use case. For the example Qlik apps you can see the needed libraries in the table above.
