@@ -1,6 +1,6 @@
 # Build and Run the R-Plugin!
 
-If it is your first time, make sure you set up the R environment and create the executables as described below in the first two steps. Otherwise you can continue directly to [3. Example Sense apps](#3-example-sense-apps).
+If it is your first time, make sure you set up the R environment and create the executables as described below in the first two steps. Otherwise you can continue directly to [3. Example Qlik apps](#3-example-qlik-apps).
 
 ## 1. Set up R Environment
 1. Install R and R Studio by following the instructions on https://www.rstudio.com/
@@ -14,11 +14,12 @@ If it is your first time, make sure you set up the R environment and create the 
 _Prerequisites_: Visual Studio 2015 (or later)   
 To be able to run the _SSEtoRserve_ plugin you must follow these steps:
 1. Open the `ServerSideExtension.sln` solution file located in the `csharp` folder.
-2. Build the solution to pull down the dependent libraries.
-3. Rebuild the solution again. Now you have your executables located in `csharp/SSEtoRserve/bin` folder.
+2. Note that there are two files missing in the ServerSideExtension project, ServerSideExtension.cs and ServerSideExtensionGrpc.cs. This is ok and will be automatically fixed in the following steps. 
+3. Build the solution to pull down the dependent NuGet packages and libraries (like Grpc.Tools).
+4. Rebuild the solution again. This time the missing files will be generated from the proto file (the protocol) using Grpc.Tools. Now you have your executables located in `csharp/SSEtoRserve/bin` folder.
 
-## 3. Example Sense apps
-There are several example Sense apps located in the sense_apps folder. Here follows a short description of each and what functionalities are covered as well as dependent libraries.
+## 3. Example Qlik apps
+There are several example Qlik apps located in the sense_apps and qlikview_apps folders. Here follows a short description of each and what functionalities are covered as well as dependent libraries.
 
 | __Example__ | __R Libraries__ | __Description__ |
 |-----|------|-----|
@@ -26,10 +27,10 @@ There are several example Sense apps located in the sense_apps folder. Here foll
 | __R_TimeSeriesAnalysis__ | TTR, forecast, tseries, colorspace | Time series use cases. |
 | __R_BasicExample__ | | Examples for all the different script functions. Also example when calling R from load script. |
 
-## 4. Install Dependent Libraries
+## 4. Install Dependent R Libraries
 Install the dependent libraries for the chosen example by
 1. Start R Studio.
-2. Run `install.packages('<library>')` for each library that will be needed based on your use case. For the example Qlik Sense apps you can see the needed libraries in the table above.
+2. Run `install.packages('<library>')` for each library that will be needed based on your use case. For the example Qlik apps you can see the needed libraries in the table above.
 
 ## 5. Start Rserve
 Assuming R Studio is still running. Run the following commands in the console.  
@@ -42,21 +43,21 @@ Rserve()
 
 ## 6. Start the R plugin
 1. If you have built the plugin from the source code, browse to the `csharp/SSEtoRserve/bin/Release` directory.
-2. **[optional]** Configure which Rserve host and port to connect to as well as which gRPC port this plugin should open (the port Qlik Sense is connecting to). This is done by editing the file `SSEtoRserve.exe.config`.
+2. **[optional]** Configure which Rserve host and port to connect to as well as which gRPC port this plugin should open (the port the Qlik engine is connecting to). This is done by editing the file `SSEtoRserve.exe.config`.
 3. **[optional]** Enable secure connection (Mutual Authentication) between this plugin and Qlik, by specifying the certificateFolderFullPath in the file `SSEtoRserve.exe.config`. Three files must be copied manually to that folder and the files needs to have the following names `root_cert.pem`, `sse_server_cert.pem`, `sse_server_key.pem`.
 4. **[optional]** Configure the SSEtoRserve log level that is written to the logs folder. Default level is Debug. By enabling Trace level you will see all data that is sent to the plugin from Qlik for easier debugging. This is done by editing the file `NLog.config` (at the bottom of the file). This is also the case for changing the level of console prints.
 5. Start `SSEtoRserve.exe` located in the folder.
 
-## 7. Configure the Plugin in Qlik Sense
-* __Qlik Sense Desktop__  
+## 7. Configure the Plugin in Qlik
+* __Qlik Sense Desktop, QlikView Desktop and QlikView Server__  
 Add the following line in the settings.ini file:
 `SSEPlugin=R,localhost:50051`
 * __Qlik Sense Enterprise/Server__  
   1. In the QMC, add a new Analytic Connection. To match the name used in the example apps, use the Analytic Connection name `R`.
   2. Restart the Qlik Sense Engine service.
 
-## 8. Start Qlik Sense and start using the apps
-Note that if you make changes to the plugin config in the settings.ini file or in the QMC you need to restart Qlik Sense (Engine service in server) for the changes to take effect since a connection to the plugin is only made during startup.
+## 8. Start Qlik and start using the apps
+Note that if you make changes to the plugin config in the settings.ini file or in the QMC you need to restart the Qlik engine (Engine service in Qlik Sense Server) for the changes to take effect since a connection to the plugin is only made during startup.
 
 # Usage from Qlik expressions and load script
 Eight script functions are automatically added to the functionality of the plugin. What is needed to be covered on the plugin side to fulfill the functionality is to implement the EvaluateScript rpc function. 
@@ -109,7 +110,7 @@ Here we pass two data fields of type string from Qlik (age_b and sex, defined as
 
 # Configure SSEtoRserve
 In the file `SSEtoRserve.exe.config` you can configure the following: 
-* **grpcPort** :  Default `50051` . The gRPC port this plugin should open (the port Qlik Sense is connecting to). Set to another port if you have other SSE plugins already defined on that port.  
+* **grpcPort** :  Default `50051` . The gRPC port this plugin should open (the port the Qlik engine is connecting to). Set to another port if you have other SSE plugins already defined on that port.  
 * **grpcHost** :  Default `localhost` . The gRPC host this plugin should open the port for. Set to `0.0.0.0` if you want this plugin to be reachable from another machine than this (typically if Qlik is installed on another machine).  
 * **rservePort** :  Default `6311` . The Rserve port this plugin should connect to.  
 * **rserveHost** :  Default `127.0.0.1` . The Rserve host this plugin should connect to.  
