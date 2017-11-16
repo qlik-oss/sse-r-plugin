@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using static Qlik.Sse.Connector;
@@ -28,16 +27,59 @@ namespace SSEtoRserve
         #region Properties and Variables
         private RserveConnectionPool connPool;
         private RserveParameter rservePara;
+        private DefinedFunctions definedFunctions;
+        private Qlik.Sse.Capabilities capabilities;
+        private int nrOfDefinedFunctions;
+        bool allowScript = false;
         #endregion
 
         #region Constructor & Dispose
-        public RServeEvaluator(RserveParameter para)
+        public RServeEvaluator(RserveParameter para, bool enableScript, string functionDefinitionsFile)
         {
+            allowScript = enableScript;
+            if (!String.IsNullOrEmpty(functionDefinitionsFile))
+            {
+                definedFunctions = new DefinedFunctions(functionDefinitionsFile);
+            }
+            CreateCapabilities();
             connPool = new RserveConnectionPool();
             rservePara = para;
             RserveConnection rserveConnInitial = connPool.GetConnection(rservePara);
 
             logger.Trace($"Rserve connection initiated: {rserveConnInitial!=null}");
+        }
+
+        private void CreateCapabilities()
+        {
+            try
+            {
+                var identifier = $"Qlik SSEtoRserve plugin";
+                var version = $"v1.1.0";
+                string registeredFunctionsString = $"No functions defined";
+
+                capabilities = new Capabilities
+                {
+                    AllowScript = allowScript,
+                    PluginIdentifier = identifier,
+                    PluginVersion = version
+                };
+
+                nrOfDefinedFunctions = 0;
+
+                if (definedFunctions?.sseFunctions?.Count > 0)
+                {
+                    nrOfDefinedFunctions = definedFunctions.sseFunctions.Count;
+                    registeredFunctionsString = $"{nrOfDefinedFunctions} Functions defined";
+                    capabilities.Functions.AddRange(definedFunctions.sseFunctions);
+                }
+
+                logger.Info($"Capabilities created: identifier ({identifier}), version ({version}), allowScript ({allowScript}), defined functions ({registeredFunctionsString})");
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Failed to create Capabilities: {ex.Message}");
+                throw ex;
+            }
         }
 
         public void Dispose()
@@ -50,16 +92,9 @@ namespace SSEtoRserve
         {
             try
             {
-                var identifier = $"Qlik SSEtoRserve plugin";
-                var version = $"v1.0.0";
-                logger.Info($"GetCapabilities called, returned ({identifier}), version ({version})");
+                logger.Info($"GetCapabilities called from client ({context.Peer})");
 
-                return Task.FromResult(new Capabilities
-                {
-                    AllowScript = true,
-                    PluginIdentifier = identifier,
-                    PluginVersion = version
-                });
+                return Task.FromResult(capabilities);
             }
             catch (Exception ex)
             {
@@ -183,10 +218,88 @@ namespace SSEtoRserve
             }
             return null;
         }
-        public override async global::System.Threading.Tasks.Task EvaluateScript(IAsyncStreamReader<global::Qlik.Sse.BundledRows> requestStream, IServerStreamWriter<global::Qlik.Sse.BundledRows> responseStream, ServerCallContext context)
+
+        public override async Task ExecuteFunction(IAsyncStreamReader<BundledRows> requestStream, IServerStreamWriter<BundledRows> responseStream, ServerCallContext context)
+        {
+            FunctionRequestHeader functionHeader;
+            CommonRequestHeader commonHeader;
+            RserveConnection rserveConn;
+            int reqHash = requestStream.GetHashCode();
+            Qlik.Sse.FunctionDefinition sseFunction;
+            DefinedFunctions.Function internalFunction;
+
+            if (nrOfDefinedFunctions == 0)
+            {
+                throw new RpcException(new Status(StatusCode.Unimplemented, $"No functions defined"));
+            }
+
+            try
+            {
+                rserveConn = connPool.GetConnection(rservePara);
+
+                var header = GetHeader(context.RequestHeaders, "qlik-functionrequestheader-bin");
+                functionHeader = FunctionRequestHeader.Parser.ParseFrom(header);
+
+                var commonRequestHeader = GetHeader(context.RequestHeaders, "qlik-commonrequestheader-bin");
+                commonHeader = CommonRequestHeader.Parser.ParseFrom(commonRequestHeader);
+
+                logger.Info($"ExecuteFunction: FunctionId ({functionHeader.FunctionId}), from client ({context.Peer}), hashid ({reqHash})");
+                logger.Debug($"ExecuteFunction header info: AppId ({commonHeader.AppId}), UserId ({commonHeader.UserId}), Cardinality ({commonHeader.Cardinality} rows)");
+
+                int funcIndex = definedFunctions.GetIndexOfFuncId(functionHeader.FunctionId);
+                if (funcIndex < 0)
+                {
+                    throw new Exception($"FunctionId ({functionHeader.FunctionId}) is not a defined function");
+                }
+                sseFunction = definedFunctions.sseFunctions[funcIndex];
+                internalFunction = definedFunctions.funcDefs.functions[funcIndex];
+            }
+            catch (Exception e)
+            {
+                logger.Error($"ExecuteFunction with hashid ({reqHash}) failed: {e.Message}");
+                throw new RpcException(new Status(StatusCode.DataLoss, e.Message));
+            }
+
+            try
+            {
+                var stopwatch = new Stopwatch();
+                stopwatch.Start();
+
+                await AddInputData(sseFunction.Params.ToArray(), requestStream, rserveConn);
+
+                logger.Debug($"Evaluating R script: {internalFunction.FunctionRScript}");
+                var res = rserveConn.Connection.Eval(internalFunction.FunctionRScript);
+                logger.Info($"Rserve result: {res.Count} rows, hashid ({reqHash})");
+
+                if (!internalFunction.CacheResultInQlik)
+                {
+                    await context.WriteResponseHeadersAsync(new Metadata { { "qlik-cache", "no-store" } });
+                }
+
+                await GenerateResult(res, responseStream, rserveConn);
+                stopwatch.Stop();
+                logger.Debug($"Took {stopwatch.ElapsedMilliseconds} ms, hashid ({reqHash})");
+            }
+            catch (Exception e)
+            {
+                HandleError(e, rserveConn);
+            }
+            finally
+            {
+                // 
+            }
+        }
+        public override async Task EvaluateScript(IAsyncStreamReader<global::Qlik.Sse.BundledRows> requestStream, IServerStreamWriter<global::Qlik.Sse.BundledRows> responseStream, ServerCallContext context)
         {
             ScriptRequestHeader scriptHeader;
+            CommonRequestHeader commonHeader;
             RserveConnection rserveConn;
+            int reqHash = requestStream.GetHashCode();
+
+            if (!(capabilities.AllowScript))
+            {
+                throw new RpcException(new Status(StatusCode.PermissionDenied, $"Script evaluations disabled"));
+            }
 
             try
             {
@@ -194,10 +307,16 @@ namespace SSEtoRserve
 
                 var header = GetHeader(context.RequestHeaders, "qlik-scriptrequestheader-bin");
                 scriptHeader = ScriptRequestHeader.Parser.ParseFrom(header);
+
+                var commonRequestHeader = GetHeader(context.RequestHeaders, "qlik-commonrequestheader-bin");
+                commonHeader = CommonRequestHeader.Parser.ParseFrom(commonRequestHeader);
+
+                logger.Info($"EvaluateScript called from client ({context.Peer}), hashid ({reqHash})");
+                logger.Debug($"EvaluateScript header info: AppId ({commonHeader.AppId}), UserId ({commonHeader.UserId}), Cardinality ({commonHeader.Cardinality} rows)");
             }
             catch (Exception e)
             {
-                logger.Error($"EvaluateScript failed: {e.Message}");
+                logger.Error($"EvaluateScript with hashid ({reqHash}) failed: {e.Message}");
                 throw new RpcException(new Status(StatusCode.DataLoss, e.Message));
             }
 
@@ -218,14 +337,14 @@ namespace SSEtoRserve
                     await AddInputData(scriptHeader.Params.ToArray(), requestStream, rserveConn);
                 }
                 var res = rserveConn.Connection.Eval(scriptHeader.Script);
-                logger.Info($"Rserve result: {res.Count} rows");
+                logger.Info($"Rserve result: {res.Count} rows, hashid ({reqHash})");
                 
                 // Disable caching (uncomment line below if you do not want the results sent to Qlik to be cached in Qlik)
                 // await context.WriteResponseHeadersAsync(new Metadata { { "qlik-cache", "no-store" } });
 
                 await GenerateResult(res, responseStream, rserveConn);
                 stopwatch.Stop();
-                logger.Debug($"Took {stopwatch.ElapsedMilliseconds} ms");
+                logger.Debug($"Took {stopwatch.ElapsedMilliseconds} ms, hashid ({reqHash})");
             }
             catch (Exception e)
             {

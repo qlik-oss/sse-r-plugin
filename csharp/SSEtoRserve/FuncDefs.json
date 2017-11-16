@@ -1,0 +1,72 @@
+{
+    "Functions" : [
+        {
+            "Id" : 0,
+            "Name" : "ConcatStringsTensor",
+            "FunctionType" : 2,
+            "ReturnType": 0,
+            "CacheResultInQlik" : "true",
+            "FunctionRScript": "paste(q$str1,q$str2);",
+            "Params" : {
+                    "str1" : 0,
+                    "str2" : 0
+                }
+        },
+        {
+            "Id": 1,
+            "Name" : "ConcatStringsAggr",
+            "FunctionType" : 1,
+            "ReturnType" : 0,
+            "CacheResultInQlik" : "true",
+            "FunctionRScript": "toString(paste(q$str1,q$str2));",
+            "Params" : {
+                    "str1" : 0,
+                    "str2" : 0
+                }
+        },
+        {
+            "Id" : 2,
+            "Name" : "CurrentTimeCached",
+            "FunctionType": 2,
+            "ReturnType": 0,
+            "FunctionRScript": "ts <- date(); 
+paste(q$str1, ts, sep = ' - ');",
+            "Params" : {
+                    "str1" : 0
+            }
+        },
+        {
+            "Id" : 3,
+            "Name" : "CurrentTimeNotCached",
+            "FunctionType": 2,
+            "ReturnType": 0,
+            "CacheResultInQlik": "false",
+            "FunctionRScript": "ts <- date(); 
+paste(q$str1, ts, sep = ' - ');",
+            "Params" : {
+                    "str1" : 0
+            }
+        },
+        {
+            "Id" : 4,
+            "Name" : "SumOfRow",
+            "FunctionType": 2,
+            "ReturnType": 1,
+            "FunctionRScript": "q$num1+q$num2;",
+            "Params" : {
+                "num1": 1,
+                "num2" : 1
+            }
+        },
+        {
+            "Id" : 5,
+            "Name" : "SumOfCol",
+            "FunctionType": 1,
+            "ReturnType": 1,
+            "FunctionRScript": "sum(q$num1);",
+            "Params" : {
+                "num1": 1
+            }
+        }
+    ]
+}

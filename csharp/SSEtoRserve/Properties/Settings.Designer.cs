@@ -62,15 +62,6 @@ namespace SSEtoRserve.Properties {
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string certificateFolderFullPath {
-            get {
-                return ((string)(this["certificateFolderFullPath"]));
-            }
-        }
-        
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
         public string rserveInitScript {
             get {
                 return ((string)(this["rserveInitScript"]));
@@ -88,10 +79,37 @@ namespace SSEtoRserve.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("--vanilla -e \\\"library(Rserve); Rserve(port = 6311, wait = TRUE);\\\"")]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string certificateFolderFullPath {
+            get {
+                return ((string)(this["certificateFolderFullPath"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
         public string rProcessCommandLineArgs {
             get {
                 return ((string)(this["rProcessCommandLineArgs"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool allowScript {
+            get {
+                return ((bool)(this["allowScript"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string functionDefinitionsFile {
+            get {
+                return ((string)(this["functionDefinitionsFile"]));
             }
         }
     }
