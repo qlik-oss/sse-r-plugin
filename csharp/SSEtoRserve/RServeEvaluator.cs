@@ -267,8 +267,8 @@ namespace SSEtoRserve
 
                 await AddInputData(sseFunction.Params.ToArray(), requestStream, rserveConn);
 
-                logger.Debug($"Evaluating R script: {internalFunction.FunctionRScript}");
-                var res = rserveConn.Connection.Eval(internalFunction.FunctionRScript);
+                logger.Debug($"Evaluating R script: {internalFunction.FunctionRScript.Replace("\r", " ")}");
+                var res = rserveConn.Connection.Eval(internalFunction.FunctionRScript.Replace("\r", " "));
                 logger.Info($"Rserve result: {res.Count} rows, hashid ({reqHash})");
 
                 if (!internalFunction.CacheResultInQlik)
