@@ -115,6 +115,80 @@ In the file `SSEtoRserve.exe.config` you can configure the following:
 * **rservePort** :  Default `6311` . The Rserve port this plugin should connect to.  
 * **rserveHost** :  Default `127.0.0.1` . The Rserve host this plugin should connect to.  
 * **certificateFolderFullPath** :  Default empty (insecure connection opened). If you want to enable mutual authentication (server and client auth) between this plugin and Qlik, then define the full path to folder where the certificate files are located, i.e. `C:\sse_qliktest_server_certs` .  
-* **rserveInitScript** :  Default empty (no additional action). If set to some R-script, i.e. `library(TTR); library(pastecs);` , then SSEtoRserve will send this initialization R script directly after a connection is created to Rserve. This way you may get rid of unnecessary library loading in every expression within the Qlik apps.  
+* **rserveInitScript** :  Default empty (no additional action). If set to some R-script, i.e. `library(TTR); library(pastecs);` , then SSEtoRserve will send this initialization R script directly after a connection is created to Rserve. This way you may get rid of unnecessary library loading in every expression within the Qlik apps. It can also be set to something like this: `setwd('C:/Users/myUser/Documents/R/Myscripts'); source("sum.R"); getwd();` to set a working directory and load your own R scripts that later can be used from SSEtoRserve.  
 * **rProcessPathToStart** :  Default empty (no additional action, SSEtoRserve assumes that Rserve is running already). If you want SSEtoRserve to start any R process during startup then set it to i.e. `C:\Program Files\R\R-3.3.3\bin\x64\Rserve.exe` or `C:\Program Files\Microsoft\R Open\bin\x64\Rterm.exe` or `C:\Program Files\R\R-3.3.3\bin\x64\Rterm.exe` , depending on what you want. If the process dies then SSEtoRserve will try to start it again after ~10 seconds.  
 * **rProcessCommandLineArgs** :  Default empty (no arguments passed when starting the rProcess defined above). If rProcessPathToStart is defined you can define the arguments here i.e. `--vanilla -e "library(Rserve); Rserve(port = 6311, wait = TRUE);"` if Rterm is started or `--RS-port 6311` if Rserve is started.  
+* **allowScript** :  Default `True` . Set to `False` to disable EvaluateScript (ScriptEval, etc.) functionality execution (from security point of view the safest option is to set it to False).  
+* **functionDefinitionsFile** :  Default empty (no defined functions added). Set to i.e. `.\FuncDefs.json` or any other file to add your own defined SSE functions. The file should contain the description of the functions you want available. See chapter below for more info.  
+
+# Defining and using your own functions
+You can also define your own functions in SSEtoRserve that can be called from Qlik expressions. Functions can be added without any needs for coding and recompilation of this plugin, just add the definition of the functions in the json file and they will automatically show up as available functions in the client (Qlik). 
+Those functions will not include any R script as parameter from Qlik, only the actual data fields as parameters.  
+The following code, which is taken from the file FuncDefs.json, shows the structure of a JSON function definition file:  
+
+```json
+{
+    "Functions" : [
+        {
+            "Id" : 0,
+            "Name" : "ConcatStringsTensor",
+            "FunctionType" : 2,
+            "ReturnType": 0,
+            "CacheResultInQlik" : "true",
+            "FunctionRScript": "paste(q$str1,q$str2);",
+            "Params" : {
+                    "str1" : 0,
+                    "str2" : 0
+                }
+        },
+        {
+            "Id" : 3,
+            "Name" : "CurrentTimeNotCached",
+            "FunctionType": 2,
+            "ReturnType": 0,
+            "CacheResultInQlik": "false",
+            "FunctionRScript": "ts <- date(); 
+paste(q$str1, ts, sep = ' - ');",
+            "Params" : {
+                    "str1" : 0
+            }
+        },
+        {
+            "Id" : 5,
+            "Name" : "SumOfCol",
+            "FunctionType": 1,
+            "ReturnType": 1,
+            "FunctionRScript": "sum(q$num1);",
+            "Params" : {
+                "num1": 1
+            }
+        }
+    ]
+}
+```
+
+Description:
+
+* `"Id" : 0` means that the id of the function is tensor. The Id must be a unique value (within the file), since Qlik is sending this id to SSEtoRserve to identify which function should be executed.  
+* `"Name" : "ConcatStringsTensor"` the name of the function that is used in the Qlik expressions. 
+* `"FunctionType" : 2` the _function type_ is tensor. 
+* `"ReturnType" : 0` the _data type_ of the returned value(s) is of type string. 
+* `"CacheResultInQlik" : "true"` set this to true to tell Qlik that the returned result from this function should be cached in Qlik, otherwize false. Default value is true even if this property is not set. 
+* `"FunctionRScript": "paste(q$str1,q$str2);"` is the R script that is going to be executed when the function is called. A dataframe named q will always be initiated containing the data parameters sent from Qlik. 
+* `"str1" : 0` is a definition of the first data parameter sent from Qlik, in this case `"str1"` is the name of the parameter and 0 means that the _data type_ is a string. 
+
+The function types are mapped as follows:
+
+| | __Function Type__ |
+| ----- | ----- |
+| __0__ | Scalar |
+| __1__ | Aggregation |
+| __2__ | Tensor |
+
+The data types of the parameters and the return value, are mapped as follows:
+
+| | __Data Type__ & Return Type|
+| ----- | ----- |
+| __0__ | String |
+| __1__ | Numeric |
+| __2__ | Dual |

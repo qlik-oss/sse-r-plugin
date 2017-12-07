@@ -1,6 +1,7 @@
 packages/
 obj/
 bin/
+.vs/
 *.suo
 ServerSideExtension/ServerSideExtension.cs
 ServerSideExtension/ServerSideExtensionGrpc.cs

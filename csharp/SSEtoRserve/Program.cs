@@ -2,10 +2,7 @@ using Grpc.Core;
 using Qlik.Sse;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 using NLog;
 using System.IO;
 
@@ -25,6 +22,8 @@ namespace SSEtoRserve
                 var rProcessPath = Convert.ToString(Properties.Settings.Default.rProcessPathToStart ?? "");
                 var rProcessCommandLineArgs = Convert.ToString(Properties.Settings.Default.rProcessCommandLineArgs ?? "");
                 var rserveInitScript = Convert.ToString(Properties.Settings.Default.rserveInitScript ?? "");
+                bool allowScript = Convert.ToBoolean(Properties.Settings.Default.allowScript);
+                var functionDefinitionsFile = Convert.ToString(Properties.Settings.Default.functionDefinitionsFile ?? "");
 
                 var sslCredentials = ServerCredentials.Insecure;
                 var certificateFolderFullPath = Convert.ToString(Properties.Settings.Default.certificateFolderFullPath ?? "");
@@ -60,7 +59,7 @@ namespace SSEtoRserve
                     uri = new Uri(rProcessPath);
                 var parameter = new RserveParameter(uri, rservePort, rserveInitScript, rProcessCommandLineArgs);
 
-                using (var rServeEvaluator = new RServeEvaluator(parameter))
+                using (var rServeEvaluator = new RServeEvaluator(parameter, allowScript, functionDefinitionsFile))
                 {
                     var server = new Server
                     {
