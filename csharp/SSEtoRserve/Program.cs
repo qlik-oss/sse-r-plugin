@@ -19,6 +19,8 @@ namespace SSEtoRserve
                 int grpcPort = Convert.ToInt32(Properties.Settings.Default.grpcPort ?? "50051");
                 var rserveHost = IPAddress.Parse(Properties.Settings.Default.rserveHost ?? "127.0.0.1");
                 int rservePort = Convert.ToInt32(Properties.Settings.Default.rservePort ?? "6311");
+                var rserveUser = Convert.ToString(Properties.Settings.Default.rserveUser ?? "");
+                var rservePassword = Convert.ToString(Properties.Settings.Default.rservePassword ?? "");
                 var rProcessPath = Convert.ToString(Properties.Settings.Default.rProcessPathToStart ?? "");
                 var rProcessCommandLineArgs = Convert.ToString(Properties.Settings.Default.rProcessCommandLineArgs ?? "");
                 var rserveInitScript = Convert.ToString(Properties.Settings.Default.rserveInitScript ?? "");
@@ -57,7 +59,7 @@ namespace SSEtoRserve
                 var uri = new Uri($"rserve://{rserveHost}:{rservePort}");
                 if (!String.IsNullOrEmpty(rProcessPath))
                     uri = new Uri(rProcessPath);
-                var parameter = new RserveParameter(uri, rservePort, rserveInitScript, rProcessCommandLineArgs);
+                var parameter = new RserveParameter(uri, rservePort, rserveInitScript, rProcessCommandLineArgs, rserveUser, rservePassword);
 
                 using (var rServeEvaluator = new RServeEvaluator(parameter, allowScript, functionDefinitionsFile))
                 {

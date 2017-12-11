@@ -21,15 +21,21 @@
       <Value Profile="(Default)" />
     </Setting>
     <Setting Name="certificateFolderFullPath" Type="System.String" Scope="Application">
-      <Value Profile="(Default)"> </Value>
+      <Value Profile="(Default)" />
     </Setting>
     <Setting Name="rProcessCommandLineArgs" Type="System.String" Scope="Application">
-      <Value Profile="(Default)"> </Value>
+      <Value Profile="(Default)" />
     </Setting>
     <Setting Name="allowScript" Type="System.Boolean" Scope="Application">
       <Value Profile="(Default)">True</Value>
     </Setting>
     <Setting Name="functionDefinitionsFile" Type="System.String" Scope="Application">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="rserveUser" Type="System.String" Scope="Application">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="rservePassword" Type="System.String" Scope="Application">
       <Value Profile="(Default)" />
     </Setting>
   </Settings>

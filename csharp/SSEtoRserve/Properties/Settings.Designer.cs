@@ -112,5 +112,23 @@ namespace SSEtoRserve.Properties {
                 return ((string)(this["functionDefinitionsFile"]));
             }
         }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string rserveUser {
+            get {
+                return ((string)(this["rserveUser"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string rservePassword {
+            get {
+                return ((string)(this["rservePassword"]));
+            }
+        }
     }
 }
