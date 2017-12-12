@@ -30,7 +30,10 @@
         public string RTermPath { get; private set; }
         public bool UseIpAddress { get; private set; }
         public string Scheme { get; private set; }
-        
+        public string User { get; private set; }
+        public string Password { get; private set; }
+        public NetworkCredential Credentials { get; private set; }
+
         public bool RTermPathExits
         {
             get
@@ -41,12 +44,14 @@
         #endregion
 
         #region Constructor
-        public RserveParameter(Uri uri, int rservePort, string initScript = null, string rProcessCommandLineArgs = null)
+        public RserveParameter(Uri uri, int rservePort, string initScript = null, string rProcessCommandLineArgs = null, string rserveUser = null, string rservePassword = null)
         {
             ConnUri = uri;
             Port = rservePort;
             InitScript = initScript;
             RProcessCommandLineArgs = rProcessCommandLineArgs;
+            User = rserveUser;
+            Password = rservePassword;
             Init();
         }
         
@@ -72,6 +77,12 @@
             {
                 IpAddress = address;
                 UseIpAddress = true;
+            }
+
+            Credentials = null;
+            if (!String.IsNullOrEmpty(User))
+            {
+                Credentials = new NetworkCredential(User, Password);
             }
         }
 
@@ -298,16 +309,22 @@
                 {
                     if (Connection == null)
                     {
+                        string userLogString = "empty user";
+                        if (Parameter.Credentials != null)
+                        {
+                            userLogString = Parameter.User;
+                        }
+
                         RConnection con = null;
                         if (Parameter.UseIpAddress)
                         {
-                            con = RConnection.Connect(Parameter.IpAddress, Parameter.Port);
-                            logger.Info($"Connected to RServe {Parameter.IpAddress}:{Parameter.Port}");
+                            con = RConnection.Connect(Parameter.IpAddress, Parameter.Port, Parameter.Credentials);
+                            logger.Info($"Connected to RServe {Parameter.IpAddress}:{Parameter.Port} with user ({userLogString})");
                         }
                         else
                         {
-                            con = RConnection.Connect(Parameter.Hostname, Parameter.Port);
-                            logger.Info($"Connected to RServe {Parameter.Hostname}:{Parameter.Port}");
+                            con = RConnection.Connect(Parameter.Hostname, Parameter.Port, Parameter.Credentials);
+                            logger.Info($"Connected to RServe {Parameter.Hostname}:{Parameter.Port} with user ({userLogString})");
                         }
                         Thread.Sleep(150);
                         
