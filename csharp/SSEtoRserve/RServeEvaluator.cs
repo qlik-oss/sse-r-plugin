@@ -437,7 +437,7 @@ namespace SSEtoRserve
                     var row = new Row();
                     row.Duals.Add(new Dual() { NumData = numerics[i] });
                     bundledRows.Rows.Add(row);
-                    if ((i % 2000) == 0)
+                    if (((i+1) % 2000) == 0)
                     {
                         // Send a bundle
                         await responseStream.WriteAsync(bundledRows);
@@ -471,7 +471,7 @@ namespace SSEtoRserve
                     var row = new Row();
                     row.Duals.Add(new Dual() {  StrData = strings[i]??"" });
                     bundledRows.Rows.Add(row);
-                    if ((i % 2000) == 0)
+                    if (((i+1) % 2000) == 0)
                     {
                         // Send a bundle
                         await responseStream.WriteAsync(bundledRows);
