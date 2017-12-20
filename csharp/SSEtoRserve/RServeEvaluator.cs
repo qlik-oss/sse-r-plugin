@@ -14,7 +14,7 @@ namespace SSEtoRserve
 {
     class RServeEvaluator : ConnectorBase, IDisposable
     {
-        private static SemaphoreSlim semaphore = new SemaphoreSlim(1);
+        private static SemaphoreSlim semaphoreRserve = new SemaphoreSlim(1, 1);
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         public class ParameterData
@@ -179,7 +179,7 @@ namespace SSEtoRserve
 
         }
 
-        async Task AddInputData(Parameter[] Parameters, IAsyncStreamReader<global::Qlik.Sse.BundledRows> requestStream, RserveConnection rserveConn)
+        async Task<SexpList> AddInputData(Parameter[] Parameters, IAsyncStreamReader<global::Qlik.Sse.BundledRows> requestStream)
         {
             var Params = GetParams(Parameters);
             await ConvertToColumnar(Params, requestStream);
@@ -189,7 +189,7 @@ namespace SSEtoRserve
                 var s = GenerateData(Params[i]);
                 data.Add(new KeyValuePair<string, object>(Parameters[i].Name, s));
             }
-            rserveConn.Connection["q"] = Sexp.MakeDataFrame(data);
+            return Sexp.MakeDataFrame(data);
         }
 
         private Sexp GenerateData(ParameterData Parameter)
@@ -217,6 +217,36 @@ namespace SSEtoRserve
                 }
             }
             return null;
+        }
+
+        async Task<Sexp> EvaluateScriptInRserve(SexpList inputDataFrame, int reqHash, string rScript, RserveConnection rserveConn)
+        {
+            await semaphoreRserve.WaitAsync();
+            try
+            {
+                if (inputDataFrame != null && inputDataFrame.Count > 0)
+                {
+                    rserveConn.Connection["q"] = inputDataFrame;
+                }
+                logger.Debug($"Evaluating R script, hashid ({reqHash}): {rScript}");
+                var res = rserveConn.Connection.Eval(rScript);
+                logger.Info($"Rserve result: {res.Count} rows, hashid ({reqHash})");
+                if (res.Count == 0)
+                {
+                    HandleZeroRowsFromRserve(rserveConn);
+                }
+
+                return res;
+            }
+            catch (Exception e)
+            {
+                HandleError(e, rserveConn);
+                return null;
+            }
+            finally
+            {
+                semaphoreRserve.Release();
+            }
         }
 
         public override async Task ExecuteFunction(IAsyncStreamReader<BundledRows> requestStream, IServerStreamWriter<BundledRows> responseStream, ServerCallContext context)
@@ -265,24 +295,27 @@ namespace SSEtoRserve
                 var stopwatch = new Stopwatch();
                 stopwatch.Start();
 
-                await AddInputData(sseFunction.Params.ToArray(), requestStream, rserveConn);
+                SexpList inputDataFrame = null;
 
-                logger.Debug($"Evaluating R script: {internalFunction.FunctionRScript.Replace("\r", " ")}");
-                var res = rserveConn.Connection.Eval(internalFunction.FunctionRScript.Replace("\r", " "));
-                logger.Info($"Rserve result: {res.Count} rows, hashid ({reqHash})");
+                if (sseFunction.Params.Count > 0)
+                {
+                    inputDataFrame = await AddInputData(sseFunction.Params.ToArray(), requestStream);
+                }
+
+                var rResult = await EvaluateScriptInRserve(inputDataFrame, reqHash, internalFunction.FunctionRScript.Replace("\r", " "), rserveConn);
 
                 if (!internalFunction.CacheResultInQlik)
                 {
                     await context.WriteResponseHeadersAsync(new Metadata { { "qlik-cache", "no-store" } });
                 }
 
-                await GenerateResult(res, responseStream, rserveConn);
+                await GenerateResult(rResult, responseStream);
                 stopwatch.Stop();
                 logger.Debug($"Took {stopwatch.ElapsedMilliseconds} ms, hashid ({reqHash})");
             }
             catch (Exception e)
             {
-                HandleError(e, rserveConn);
+                throw new RpcException(new Status(StatusCode.InvalidArgument, $"{e.Message}"));
             }
             finally
             {
@@ -324,31 +357,33 @@ namespace SSEtoRserve
             {
                 var stopwatch = new Stopwatch();
                 stopwatch.Start();
-
-                logger.Info($"Evaluating {scriptHeader.Script}");
-                var paramnames = "Param names: ";
+                
+                var paramnames = $"EvaluateScript call with hashid({reqHash}) got Param names: ";
                 foreach (var param in scriptHeader.Params)
                 {
                     paramnames += $" {param.Name}";
                 }
                 logger.Info("{0}", paramnames);
+
+                SexpList inputDataFrame = null;
+
                 if (scriptHeader.Params != null && scriptHeader.Params.Count > 0)
                 {
-                    await AddInputData(scriptHeader.Params.ToArray(), requestStream, rserveConn);
+                    inputDataFrame = await AddInputData(scriptHeader.Params.ToArray(), requestStream);
                 }
-                var res = rserveConn.Connection.Eval(scriptHeader.Script);
-                logger.Info($"Rserve result: {res.Count} rows, hashid ({reqHash})");
+
+                var rResult = await EvaluateScriptInRserve(inputDataFrame, reqHash, scriptHeader.Script, rserveConn);
                 
                 // Disable caching (uncomment line below if you do not want the results sent to Qlik to be cached in Qlik)
                 // await context.WriteResponseHeadersAsync(new Metadata { { "qlik-cache", "no-store" } });
 
-                await GenerateResult(res, responseStream, rserveConn);
+                await GenerateResult(rResult, responseStream);
                 stopwatch.Stop();
                 logger.Debug($"Took {stopwatch.ElapsedMilliseconds} ms, hashid ({reqHash})");
             }
             catch (Exception e)
             {
-                HandleError(e, rserveConn);
+                throw new RpcException(new Status(StatusCode.InvalidArgument, $"{e.Message}"));
             }
             finally
             {
@@ -421,23 +456,19 @@ namespace SSEtoRserve
             }
             throw new RpcException(new Status(StatusCode.InvalidArgument, $"{msg}"));
         }
-        private async Task GenerateResult(Sexp RResult, IServerStreamWriter<global::Qlik.Sse.BundledRows> responseStream, RserveConnection rserveConn)
+        private async Task GenerateResult(Sexp RResult, IServerStreamWriter<global::Qlik.Sse.BundledRows> responseStream)
         {
             if (RResult is SexpArrayBool || RResult is SexpArrayDouble || RResult is SexpArrayInt)
             {
                 var bundledRows = new BundledRows();
                 var numerics = RResult.AsDoubles;
-                if (numerics.Length == 0)
-                {
-                    HandleZeroRowsFromRserve(rserveConn);
-                }
 
                 for (int i=0; i< numerics.Length; i++)
                 {
                     var row = new Row();
                     row.Duals.Add(new Dual() { NumData = numerics[i] });
                     bundledRows.Rows.Add(row);
-                    if ((i % 2000) == 0)
+                    if (((i+1) % 2000) == 0)
                     {
                         // Send a bundle
                         await responseStream.WriteAsync(bundledRows);
@@ -461,17 +492,13 @@ namespace SSEtoRserve
             {
                 var bundledRows = new BundledRows();
                 var strings = RResult.AsStrings;
-                if (strings.Length == 0)
-                {
-                    HandleZeroRowsFromRserve(rserveConn);
-                }
 
                 for (int i = 0; i < strings.Length; i++)
                 {
                     var row = new Row();
                     row.Duals.Add(new Dual() {  StrData = strings[i]??"" });
                     bundledRows.Rows.Add(row);
-                    if ((i % 2000) == 0)
+                    if (((i+1) % 2000) == 0)
                     {
                         // Send a bundle
                         await responseStream.WriteAsync(bundledRows);
