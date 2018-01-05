@@ -55,7 +55,7 @@ paste(q$str1, ts, sep = ' - ');",
             "FunctionRScript": "q$num1+q$num2;",
             "Params" : {
                 "num1": 1,
-                "num2" : 1
+                "num2": 1
             }
         },
         {
@@ -66,6 +66,17 @@ paste(q$str1, ts, sep = ' - ');",
             "FunctionRScript": "sum(q$num1);",
             "Params" : {
                 "num1": 1
+            }
+        },
+        {
+            "Id" : 6,
+            "Name" : "SumAndMulOfRow",
+            "FunctionType": 2,
+            "ReturnType": 1,
+            "FunctionRScript": "q$SumOfRow = q$num1+q$num2; q$MulOfRow = q$num1*q$num2; qRes <- within(q, rm(num1, num2)); qRes;",
+            "Params" : {
+                "num1": 1,
+                "num2": 1
             }
         }
     ]
