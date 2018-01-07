@@ -25,7 +25,7 @@ There are several example Qlik apps located in the sense_apps and qlikview_apps 
 |-----|------|-----|
 | __R_DecisionTree__ | rpart, d3r, partykit, jsonlite | A d3.js visualization showing a decision tree, based on a json result string returned from R. |
 | __R_TimeSeriesAnalysis__ | TTR, forecast, tseries, colorspace | Time series use cases. |
-| __R_BasicExample__ | | Examples for all the different script functions. Also example when calling R from load script. |
+| __R_BasicExample__ | | Examples for all the different script functions and user defined functions. Examples of loading data from R plugin in the qlik load script (including loading a whole table in one call, that was added in version v1.2.0 of the R-plugin). |
 
 ## 4. Install Dependent R Libraries
 Install the dependent libraries for the chosen example by
@@ -107,6 +107,13 @@ Here we pass two data fields from Qlik (pclass and sex). The first parameter is 
 ### Example expression 4
 `R.ScriptAggrExStr('SS', 'paste(q$age_b[1],q$sex[1]);' ,age_b, sex)`
 Here we pass two data fields of type string from Qlik (age_b and sex, defined as SS in the first function parameter). The script/function returns one string value back to Qlik.
+
+## Usage from Qlik load script
+You can load a whole table from the R-plugin in one call by using the `LOAD ... EXTENSION ...` statement in the Qlik load script.  
+The best way to return many columns from the R script is to return a data.frame. SSEtoRserve can also handle a matrix returned from the R script but it is not as good as a data.frame. Returning other types from the R script got an undefined behaviour.
+It is actually possible to return many columns to Qlik even if it is not called from the Qlik load script, for instance from a chart expression, and in that case Qlik will simply ignore all columns after the first one.  
+Read more about the syntax for table load using SSE in the [Qlik Sense help](http://help.qlik.com/en-US/sense/February2018/Subsystems/Hub/Content/Scripting/ScriptRegularStatements/Load.htm) .  
+You can also have a look in the load script of [R-BasicExample.qvf](https://github.com/qlik-oss/sse-r-plugin/tree/master/sense_apps/R_BasicExample) where more examples exists.  
 
 # Configure SSEtoRserve
 In the file `SSEtoRserve.exe.config` you can configure the following: 

@@ -7,7 +7,7 @@ SSE is part of the Advanced Analytics Integration (AAI) concept at Qlik.
 R is not a supported language in gRPC by default. The purpose of this repository is therefore to provide a possible solution using a C# SSE plugin which in turn accesses Rserve to be able to run R scripts. All documentation and guides regarding SSE in general, referred to as server-side-extension, are valid and useful for this plugin as well.  
 
 ## Status
-**Latest Version:** [v1.1.0](https://github.com/qlik-oss/sse-r-plugin/releases/latest) (using SSE protocol version v1.0.0)    
+**Latest Version:** [v1.2.0](https://github.com/qlik-oss/sse-r-plugin/releases/latest) (using SSE protocol version v1.1.0)    
 **Disclaimer:** Use it at your own risk. See [License](#license).  
 
 [All Versions](docs/versions.md)
@@ -36,17 +36,10 @@ Instead you can define the functions that should be available in this SSEtoRserv
 #### Secure connection using certificates
 Enable secure connection between the plugin server and Qlik by enabling mutual authentication. See the folder `generate_certs_guide` that explains how to generate proper certificates. This can be found in the general SSE repo (server-side-extension).
 
-## Limitations in this version of SSE
-
-#### Load Script (Qlik Limitation)
-- No support for Tensor calls from load script. Only scalar and aggregation.
-- Resident Table load only.
-
-#### Returning Data
-- There is NO support of returning more rows or a matrix of data back to Qlik. The cardinality of the response from the plugin must be the same as sent from Qlik.
+## Limitations
 
 #### Changed Plugin Configuration (Qlik Limitation)
-- If you make changes to the plugin config or add/remove plugins you have to restart the Qlik engine (i.e. restarting the Desktop process for Qlik Sense Desktop and QlikView Desktop, and restarting the Qlik Sense Engine Service or QlikView Server Service for server version). It is only during Engine startup that the plugin is connected and the GetCapability plugin method is called.
+- If you make changes to the plugin config or add/remove plugins you have to restart the Qlik engine (i.e. restarting the Desktop process for Qlik Sense Desktop and QlikView Desktop, and restarting the Qlik Sense Engine Service or QlikView Server Service for server version). It is only during Engine startup that Qlik connects to the plugin and calls the GetCapability plugin method to see what the plugin is capable of and which functions that are available.
 
 ## License
 See [LICENSE.txt](LICENSE.txt).
