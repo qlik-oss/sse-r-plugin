@@ -1,10 +1,8 @@
 # SSE R-plugin
 
-Server Side Extension (SSE) is a general technology for extending the Qlik built in expression library, both for load-script and for chart expressions with functionality from external calculation engines. The main purpose is to use SSE in Qlik visualization measures and to some extent also for calculated dimensions.  
+This repository provides a server-side extension (SSE) that allows you to extend the Qlik built-in expression library with functionality from R. You can use this in both load scripts and charts. In Qlik Sense and QlikView, you connect to this SSE R-plugin by defining an analytic connection.
 
-SSE is part of the Advanced Analytics Integration (AAI) concept at Qlik.  
-
-R is not a supported language in gRPC by default. The purpose of this repository is therefore to provide a possible solution using a C# SSE plugin which in turn accesses Rserve to be able to run R scripts. All documentation and guides regarding SSE in general, referred to as server-side-extension, are valid and useful for this plugin as well.  
+R is not a supported language in gRPC by default. The purpose of this repository is therefore to provide an SSE, written in C# and is called SSEtoRserve, that accesses Rserve to be able to run R scripts. All documentation and guides regarding SSE in general, referred to as server-side-extension, are valid and useful for this plugin as well.  
 
 ## Status
 **Latest Version:** [v1.2.0](https://github.com/qlik-oss/sse-r-plugin/releases/latest) (using SSE protocol version v1.1.0)    
