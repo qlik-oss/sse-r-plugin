@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using static Qlik.Sse.Connector;
 using NLog;
+using Google.Protobuf;
 
 namespace SSEtoRserve
 {
@@ -44,9 +45,10 @@ namespace SSEtoRserve
             CreateCapabilities();
             connPool = new RserveConnectionPool();
             rservePara = para;
+
             RserveConnection rserveConnInitial = connPool.GetConnection(rservePara);
 
-            logger.Trace($"Rserve connection initiated: {rserveConnInitial!=null}");
+            logger.Trace($"Rserve connection initiated: {rserveConnInitial != null}");
         }
 
         private void CreateCapabilities()
@@ -54,7 +56,7 @@ namespace SSEtoRserve
             try
             {
                 var identifier = $"Qlik SSEtoRserve plugin";
-                var version = $"v1.1.0";
+                var version = $"v1.2.0";
                 string registeredFunctionsString = $"No functions defined";
 
                 capabilities = new Capabilities
@@ -101,7 +103,8 @@ namespace SSEtoRserve
                 logger.Error($"GetCapabilities failed: {ex.Message}");
                 return null;
             }
-    }
+        }
+
         private string[] GetParamNames(Parameter[] Parameters)
         {
             return Parameters
@@ -118,6 +121,7 @@ namespace SSEtoRserve
                             {
                                 DataType = Param.DataType
                             };
+
                             switch (Param.DataType)
                             {
                                 case DataType.Numeric:
@@ -133,24 +137,27 @@ namespace SSEtoRserve
                             return p;
                         })
                         .ToArray();
-
         }
 
         async Task ConvertToColumnar(ParameterData[] Parameters, IAsyncStreamReader<global::Qlik.Sse.BundledRows> requestStream)
         {
             int rowNum = 0;
+
             while (await requestStream.MoveNext())
             {
                 var bundledRows = requestStream.Current;
                 var nrOfRows = bundledRows.Rows.Count;
+
                 for (int r = 0; r < nrOfRows; r++)
                 {
                     var Row = bundledRows.Rows[r];
                     var logRowData = new List<string>();
+
                     for (int i = 0; i < Parameters.Length; i++)
                     {
                         var param = Parameters[i];
                         var dual = Row.Duals[i];
+
                         switch (param.DataType)
                         {
                             case DataType.Numeric:
@@ -176,7 +183,6 @@ namespace SSEtoRserve
                     }
                 }
             }
-
         }
 
         async Task<SexpList> AddInputData(Parameter[] Parameters, IAsyncStreamReader<global::Qlik.Sse.BundledRows> requestStream)
@@ -184,6 +190,7 @@ namespace SSEtoRserve
             var Params = GetParams(Parameters);
             await ConvertToColumnar(Params, requestStream);
             var data = new List<KeyValuePair<string, object>>();
+
             for (int i = 0; i < Params.Length; i++)
             {
                 var s = GenerateData(Params[i]);
@@ -209,9 +216,9 @@ namespace SSEtoRserve
 
         byte[] GetHeader(Metadata Headers, string Key)
         {
-            foreach(var Header in Headers)
+            foreach (var Header in Headers)
             {
-                if(Header.Key == Key)
+                if (Header.Key == Key)
                 {
                     return Header.ValueBytes;
                 }
@@ -229,6 +236,7 @@ namespace SSEtoRserve
                     rserveConn.Connection["q"] = inputDataFrame;
                 }
                 logger.Debug($"Evaluating R script, hashid ({reqHash}): {rScript}");
+
                 var res = rserveConn.Connection.Eval(rScript);
                 logger.Info($"Rserve result: {res.Count} rows, hashid ({reqHash})");
                 if (res.Count == 0)
@@ -277,6 +285,7 @@ namespace SSEtoRserve
                 logger.Debug($"ExecuteFunction header info: AppId ({commonHeader.AppId}), UserId ({commonHeader.UserId}), Cardinality ({commonHeader.Cardinality} rows)");
 
                 int funcIndex = definedFunctions.GetIndexOfFuncId(functionHeader.FunctionId);
+
                 if (funcIndex < 0)
                 {
                     throw new Exception($"FunctionId ({functionHeader.FunctionId}) is not a defined function");
@@ -304,12 +313,7 @@ namespace SSEtoRserve
 
                 var rResult = await EvaluateScriptInRserve(inputDataFrame, reqHash, internalFunction.FunctionRScript.Replace("\r", " "), rserveConn);
 
-                if (!internalFunction.CacheResultInQlik)
-                {
-                    await context.WriteResponseHeadersAsync(new Metadata { { "qlik-cache", "no-store" } });
-                }
-
-                await GenerateResult(rResult, responseStream);
+                await GenerateResult(rResult, responseStream, context, true, sseFunction.ReturnType, internalFunction.CacheResultInQlik);
                 stopwatch.Stop();
                 logger.Debug($"Took {stopwatch.ElapsedMilliseconds} ms, hashid ({reqHash})");
             }
@@ -322,6 +326,7 @@ namespace SSEtoRserve
                 // 
             }
         }
+
         public override async Task EvaluateScript(IAsyncStreamReader<global::Qlik.Sse.BundledRows> requestStream, IServerStreamWriter<global::Qlik.Sse.BundledRows> responseStream, ServerCallContext context)
         {
             ScriptRequestHeader scriptHeader;
@@ -357,8 +362,9 @@ namespace SSEtoRserve
             {
                 var stopwatch = new Stopwatch();
                 stopwatch.Start();
-                
+
                 var paramnames = $"EvaluateScript call with hashid({reqHash}) got Param names: ";
+
                 foreach (var param in scriptHeader.Params)
                 {
                     paramnames += $" {param.Name}";
@@ -373,11 +379,10 @@ namespace SSEtoRserve
                 }
 
                 var rResult = await EvaluateScriptInRserve(inputDataFrame, reqHash, scriptHeader.Script, rserveConn);
-                
-                // Disable caching (uncomment line below if you do not want the results sent to Qlik to be cached in Qlik)
-                // await context.WriteResponseHeadersAsync(new Metadata { { "qlik-cache", "no-store" } });
 
-                await GenerateResult(rResult, responseStream);
+                // Disable caching (uncomment line below and comment next line if you do not want the results sent to Qlik to be cached in Qlik)
+                //await GenerateResult(rResult, responseStream, context, cacheResultInQlik: false);
+                await GenerateResult(rResult, responseStream, context);
                 stopwatch.Stop();
                 logger.Debug($"Took {stopwatch.ElapsedMilliseconds} ms, hashid ({reqHash})");
             }
@@ -387,13 +392,14 @@ namespace SSEtoRserve
             }
             finally
             {
-               // 
+                // 
             }
         }
 
-        private void HandleError (Exception ex, RserveConnection rserveConn)
+        private void HandleError(Exception ex, RserveConnection rserveConn)
         {
             String msg;
+
             try
             {
                 msg = rserveConn.Connection.Eval("geterrmessage()").AsString;
@@ -421,15 +427,18 @@ namespace SSEtoRserve
             catch
             {
                 // Error msg already logged
-            }           
+            }
             throw new RpcException(new Status(StatusCode.InvalidArgument, $"Rserve error: {msg}"));
         }
+
         private void HandleZeroRowsFromRserve(RserveConnection rserveConn)
         {
             String msg = $"No data returned from R script execution. Possible error in script: ";
+
             try
             {
                 String errMsg = rserveConn.Connection.Eval("geterrmessage()").AsString;
+
                 if (!String.IsNullOrWhiteSpace(errMsg))
                 {
                     msg = msg + errMsg;
@@ -456,49 +465,168 @@ namespace SSEtoRserve
             }
             throw new RpcException(new Status(StatusCode.InvalidArgument, $"{msg}"));
         }
-        private async Task GenerateResult(Sexp RResult, IServerStreamWriter<global::Qlik.Sse.BundledRows> responseStream)
-        {
-            if (RResult is SexpArrayBool || RResult is SexpArrayDouble || RResult is SexpArrayInt)
-            {
-                var bundledRows = new BundledRows();
-                var numerics = RResult.AsDoubles;
 
-                for (int i=0; i< numerics.Length; i++)
+        public class ResultDataColumn
+        {
+            public string Name;
+            public DataType DataType;
+            public double[] Numerics;
+            public string[] Strings;
+        }
+
+        private async Task GenerateResult(Sexp RResult, IServerStreamWriter<global::Qlik.Sse.BundledRows> responseStream, ServerCallContext context,
+            bool failIfWrongDataTypeInFirstCol = false, DataType expectedFirstDataType = DataType.Numeric, bool cacheResultInQlik = true)
+        {
+            int nrOfCols = 0;
+            int nrOfRows = 0;
+            ResultDataColumn[] resultDataColumns = null;
+            var names = RResult.Names;
+
+            if (names != null)
+            {
+                logger.Debug($"Rserve result column names: {String.Join(", ", names)}");
+            }
+
+            if (RResult is SexpList)
+            {
+                // Indicating this is a data.frame/matrix response structure. Figure out how many columns, names and data types
+                nrOfCols = RResult.Count;
+                logger.Debug($"Rserve result nrOfColumns: {nrOfCols}");
+                if (RResult.Attributes != null && RResult.Attributes.Count > 0)
                 {
-                    var row = new Row();
-                    row.Duals.Add(new Dual() { NumData = numerics[i] });
-                    bundledRows.Rows.Add(row);
-                    if (((i+1) % 2000) == 0)
+                    Sexp resObjectNames;
+
+                    if ((names == null || names.Length == 0) && RResult.Attributes.TryGetValue("names", out resObjectNames))
                     {
-                        // Send a bundle
-                        await responseStream.WriteAsync(bundledRows);
-                        bundledRows = new BundledRows();
+                        names = resObjectNames.AsStrings;
+                        logger.Debug($"Rserve result column names: {String.Join(", ", names)}");
+                    }
+
+                    Sexp resObjectClass;
+
+                    if (RResult.Attributes.TryGetValue("class", out resObjectClass))
+                    {
+                        logger.Debug($"Rserve result object class: {resObjectClass.ToString()}");
                     }
                 }
-
-                if (bundledRows.Rows.Count() > 0)
+                if (nrOfCols > 0)
                 {
-                    // Send last bundle
-                    await responseStream.WriteAsync(bundledRows);
+                    var columns = RResult.AsList;
+                    resultDataColumns = GetResultDataColumns(ref nrOfRows, names, columns);
                 }
+            }
+            else if (RResult is SexpArrayBool || RResult is SexpArrayDouble || RResult is SexpArrayInt)
+            {
+                nrOfCols = 1;
+                var bundledRows = new BundledRows();
+                var numerics = RResult.AsDoubles;
+                nrOfRows = numerics.Length;
+
+                var c = new ResultDataColumn();
+                c.Name = "";
+                c.DataType = DataType.Numeric;
+                c.Numerics = numerics;
+                resultDataColumns = new ResultDataColumn[1];
+                resultDataColumns[0] = c;
 
                 if (logger.IsTraceEnabled)
                 {
                     var logNumerics = String.Join(", ", numerics);
-                    logger.Trace("Numeric result column data: {0}", logNumerics);
+                    logger.Trace("Numeric result column data[0]: {0}", logNumerics);
                 }
             }
             else if (RResult is SexpArrayString)
             {
+                nrOfCols = 1;
                 var bundledRows = new BundledRows();
                 var strings = RResult.AsStrings;
+                nrOfRows = strings.Length;
 
-                for (int i = 0; i < strings.Length; i++)
+                var c = new ResultDataColumn();
+                c.Name = "";
+                c.DataType = DataType.String;
+                c.Strings = strings;
+                resultDataColumns = new ResultDataColumn[1];
+                resultDataColumns[0] = c;
+
+                if (logger.IsTraceEnabled)
+                {
+                    var logStrings = String.Join(", ", strings);
+                    logger.Trace("String result column data[0]: {0}", logStrings);
+                }
+            }
+            else
+            {
+                logger.Warn($"Rserve result, column data type not recognized: {RResult.GetType().ToString()}");
+                throw new NotImplementedException();
+            }
+
+            if (resultDataColumns != null)
+            {
+                if (failIfWrongDataTypeInFirstCol && expectedFirstDataType != resultDataColumns[0].DataType)
+                {
+                    string msg = $"Rserve result datatype mismatch in first column, expected {expectedFirstDataType}, got {resultDataColumns[0].DataType}";
+                    logger.Warn($"{msg}");
+                    throw new RpcException(new Status(StatusCode.InvalidArgument, $"{msg}"));
+                }
+
+                //Send TableDescription header
+                TableDescription tableDesc = new TableDescription
+                {
+                    NumberOfRows = nrOfRows
+                };
+
+                for (int col = 0; col < nrOfCols; col++)
+                {
+                    if (String.IsNullOrEmpty(resultDataColumns[col].Name))
+                    {
+                        tableDesc.Fields.Add(new FieldDescription
+                        {
+                            DataType = resultDataColumns[col].DataType
+                        });
+                    }
+                    else
+                    {
+                        tableDesc.Fields.Add(new FieldDescription
+                        {
+                            DataType = resultDataColumns[col].DataType,
+                            Name = resultDataColumns[col].Name
+                        });
+                    }
+                }
+
+                var tableMetadata = new Metadata
+                {
+                    { new Metadata.Entry("qlik-tabledescription-bin", MessageExtensions.ToByteArray(tableDesc)) }
+                };
+
+                if (!cacheResultInQlik)
+                {
+                    tableMetadata.Add("qlik-cache", "no-store");
+                }
+
+                await context.WriteResponseHeadersAsync(tableMetadata);
+
+                // Send data
+                var bundledRows = new BundledRows();
+
+                for (int i = 0; i < nrOfRows; i++)
                 {
                     var row = new Row();
-                    row.Duals.Add(new Dual() {  StrData = strings[i]??"" });
+
+                    for (int col = 0; col < nrOfCols; col++)
+                    {
+                        if (resultDataColumns[col].DataType == DataType.Numeric)
+                        {
+                            row.Duals.Add(new Dual() { NumData = resultDataColumns[col].Numerics[i] });
+                        }
+                        else if (resultDataColumns[col].DataType == DataType.String)
+                        {
+                            row.Duals.Add(new Dual() { StrData = resultDataColumns[col].Strings[i] ?? "" });
+                        }
+                    }
                     bundledRows.Rows.Add(row);
-                    if (((i+1) % 2000) == 0)
+                    if (((i + 1) % 2000) == 0)
                     {
                         // Send a bundle
                         await responseStream.WriteAsync(bundledRows);
@@ -511,17 +639,75 @@ namespace SSEtoRserve
                     // Send last bundle
                     await responseStream.WriteAsync(bundledRows);
                 }
+            }
+        }
 
-                if (logger.IsTraceEnabled)
+        private ResultDataColumn[] GetResultDataColumns(ref int nrOfRows, string[] names, IList<object> columns)
+        {
+            int nRows = nrOfRows;
+
+            ResultDataColumn[] resultDataColumns = columns
+                .Select((col, index) =>
                 {
-                    var logStrings = String.Join(", ", strings);
-                    logger.Trace("String result column data: {0}", logStrings);
-                }
-            }
-            else
-            {
-                throw new NotImplementedException();
-            }
+                    var c = new ResultDataColumn();
+
+                    if (names != null && names.Length > 0)
+                    {
+                        c.Name = names[index] ?? "";
+                    }
+                    if (col is SexpArrayBool || col is SexpArrayDouble || col is SexpArrayInt)
+                    {
+                        c.DataType = DataType.Numeric;
+
+                        Sexp colAsSexp = (Sexp)col;
+                        c.Numerics = colAsSexp.AsDoubles;
+                        if (index == 0)
+                        {
+                            nRows = c.Numerics.Length;
+                        }
+                        else if (nRows != c.Numerics.Length)
+                        {
+                            logger.Warn($"Rserve result, different length in columns: {nRows} vs {c.Numerics.Length}");
+                            throw new NotImplementedException();
+                        }
+
+                        if (logger.IsTraceEnabled)
+                        {
+                            var logNumerics = String.Join(", ", c.Numerics);
+                            logger.Trace($"Numeric result column data[{index}]: {logNumerics}");
+                        }
+                    }
+                    else if (col is SexpArrayString)
+                    {
+                        c.DataType = DataType.String;
+                        Sexp colAsSexp = (Sexp)col;
+                        c.Strings = colAsSexp.AsStrings;
+                        if (index == 0)
+                        {
+                            nRows = c.Strings.Length;
+                        }
+                        else if (nRows != c.Strings.Length)
+                        {
+                            logger.Warn($"Rserve result, different length in columns: {nRows} vs {c.Strings.Length}");
+                            throw new NotImplementedException();
+                        }
+
+                        if (logger.IsTraceEnabled)
+                        {
+                            var logStrings = String.Join(", ", c.Strings);
+                            logger.Trace($"String result column data[{index}]: {logStrings}");
+                        }
+                    }
+                    else
+                    {
+                        logger.Warn($"Rserve result, column data type not recognized: {col.GetType().ToString()}");
+                        throw new NotImplementedException();
+                    }
+                    return c;
+                })
+                .ToArray();
+            nrOfRows = nRows;
+            return resultDataColumns;
         }
     }
 
