@@ -56,7 +56,7 @@ namespace SSEtoRserve
             try
             {
                 var identifier = $"Qlik SSEtoRserve plugin";
-                var version = $"v1.2.0";
+                var version = $"v1.2.1";
                 string registeredFunctionsString = $"No functions defined";
 
                 capabilities = new Capabilities
@@ -378,7 +378,7 @@ namespace SSEtoRserve
                     inputDataFrame = await AddInputData(scriptHeader.Params.ToArray(), requestStream);
                 }
 
-                var rResult = await EvaluateScriptInRserve(inputDataFrame, reqHash, scriptHeader.Script, rserveConn);
+                var rResult = await EvaluateScriptInRserve(inputDataFrame, reqHash, scriptHeader.Script.Replace("\r", " "), rserveConn);
 
                 // Disable caching (uncomment line below and comment next line if you do not want the results sent to Qlik to be cached in Qlik)
                 //await GenerateResult(rResult, responseStream, context, cacheResultInQlik: false);

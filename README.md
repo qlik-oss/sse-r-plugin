@@ -5,7 +5,7 @@ This repository provides a server-side extension (SSE) that allows you to extend
 R is not a supported language in gRPC by default. The purpose of this repository is therefore to provide an SSE, written in C# and is called SSEtoRserve, that accesses Rserve to be able to run R scripts. All documentation and guides regarding SSE in general, referred to as server-side-extension, are valid and useful for this plugin as well.  
 
 ## Status
-**Latest Version:** [v1.2.0](https://github.com/qlik-oss/sse-r-plugin/releases/latest) (using SSE protocol version v1.1.0)    
+**Latest Version:** [v1.2.1](https://github.com/qlik-oss/sse-r-plugin/releases/latest) (using SSE protocol version v1.1.0)    
 **Disclaimer:** Use it at your own risk. See [License](#license).  
 
 [All Versions](docs/versions.md)
