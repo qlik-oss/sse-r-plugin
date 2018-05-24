@@ -17,7 +17,7 @@ namespace SSEtoRserve
             {
                 var grpcHost = Convert.ToString(Properties.Settings.Default.grpcHost ?? "localhost");
                 int grpcPort = Convert.ToInt32(Properties.Settings.Default.grpcPort ?? "50051");
-                var rserveHost = IPAddress.Parse(Properties.Settings.Default.rserveHost ?? "127.0.0.1");
+                var rserveHost = Convert.ToString(Properties.Settings.Default.rserveHost ?? "127.0.0.1");
                 int rservePort = Convert.ToInt32(Properties.Settings.Default.rservePort ?? "6311");
                 var rserveUser = Convert.ToString(Properties.Settings.Default.rserveUser ?? "");
                 var rservePassword = Convert.ToString(Properties.Settings.Default.rservePassword ?? "");
